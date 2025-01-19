@@ -5,7 +5,7 @@ use proc_macro::TokenStream as CompilerTokenStream;
 
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(AsStd140)]
+#[proc_macro_derive(AsStd140, attributes(crevice_crate))]
 pub fn derive_as_std140(input: CompilerTokenStream) -> CompilerTokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let expanded = layout::emit(input, "Std140", "std140", 16);
@@ -13,7 +13,7 @@ pub fn derive_as_std140(input: CompilerTokenStream) -> CompilerTokenStream {
     CompilerTokenStream::from(expanded)
 }
 
-#[proc_macro_derive(AsStd430)]
+#[proc_macro_derive(AsStd430, attributes(crevice_crate))]
 pub fn derive_as_std430(input: CompilerTokenStream) -> CompilerTokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let expanded = layout::emit(input, "Std430", "std430", 0);

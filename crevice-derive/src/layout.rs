@@ -11,7 +11,23 @@ pub fn emit(
     let mod_name = Ident::new(mod_name, Span::call_site());
     let trait_name = Ident::new(trait_name, Span::call_site());
 
-    let mod_path: Path = parse_quote!(::crevice::#mod_name);
+    let crate_path = input
+        .attrs
+        .iter()
+        .filter_map(|attr| {
+            if attr.path.is_ident("crevice_crate") {
+                Some(
+                    attr.parse_args::<Path>()
+                        .expect("Failed to parse `crevice_crate` value as path"),
+                )
+            } else {
+                None
+            }
+        })
+        .last()
+        .unwrap_or_else(|| parse_quote!(::crevice));
+
+    let mod_path: Path = parse_quote!(#crate_path::#mod_name);
     let trait_path: Path = parse_quote!(#mod_path::#trait_name);
 
     let as_trait_name = format_ident!("As{}", trait_name);
@@ -52,7 +68,7 @@ pub fn emit(
 
     let field_alignments = fields.iter().map(|field| layout_alignment_of_ty(&field.ty));
     let struct_alignment = quote! {
-        ::crevice::internal::max_arr([
+        #crate_path::internal::max_arr([
             #min_struct_alignment,
             #(#field_alignments,)*
         ])
@@ -119,7 +135,7 @@ pub fn emit(
                     let alignment = #next_field_or_self_alignment;
 
                     // Using everything we've got, compute our padding amount.
-                    ::crevice::internal::align_offset(starting_offset, alignment)
+                    #crate_path::internal::align_offset(starting_offset, alignment)
                 }
             }
         })
@@ -196,7 +212,7 @@ pub fn emit(
                     let size = ::core::mem::size_of::<Self>();
                     let align = <Self as #trait_path>::ALIGNMENT;
 
-                    let zeroed: Self = ::crevice::internal::bytemuck::Zeroable::zeroed();
+                    let zeroed: Self = #crate_path::internal::bytemuck::Zeroable::zeroed();
 
                     #[derive(Debug)]
                     struct Field {
@@ -233,8 +249,8 @@ pub fn emit(
             }
         }
 
-        unsafe impl #impl_generics ::crevice::internal::bytemuck::Zeroable for #generated_name #ty_generics #where_clause {}
-        unsafe impl #impl_generics ::crevice::internal::bytemuck::Pod for #generated_name #ty_generics #where_clause {}
+        unsafe impl #impl_generics #crate_path::internal::bytemuck::Zeroable for #generated_name #ty_generics #where_clause {}
+        unsafe impl #impl_generics #crate_path::internal::bytemuck::Pod for #generated_name #ty_generics #where_clause {}
 
         unsafe impl #impl_generics #trait_path for #generated_name #ty_generics #where_clause {
             const ALIGNMENT: usize = #struct_alignment;
@@ -247,7 +263,7 @@ pub fn emit(
                 Self::Output {
                     #generated_struct_field_init
 
-                    ..::crevice::internal::bytemuck::Zeroable::zeroed()
+                    ..#crate_path::internal::bytemuck::Zeroable::zeroed()
                 }
             }
 

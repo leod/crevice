@@ -257,6 +257,31 @@ fn vec3_then_f32() {
 }
 
 #[test]
+fn vec3_then_f32_with_crate_attribute() {
+    mod custom_mod {
+        pub use ::crevice;
+    }
+
+    #[derive(Debug, PartialEq, AsStd140, AsStd430)]
+    #[crevice_crate(custom_mod::crevice)]
+    #[cfg_attr(feature = "wgpu-validation", derive(GlslStruct))]
+    struct Vec3ThenF32 {
+        one: Vector3<f32>,
+        two: f32,
+    }
+
+    assert_std140!((size = 16, align = 16) Vec3ThenF32 {
+        one: 0,
+        two: 12,
+    });
+
+    test_round_trip_struct(Vec3ThenF32 {
+        one: [1.0, 2.0, 3.0].into(),
+        two: 4.0,
+    });
+}
+
+#[test]
 fn mat3_padding() {
     #[derive(Debug, PartialEq, AsStd140, AsStd430)]
     #[cfg_attr(feature = "wgpu-validation", derive(GlslStruct))]
